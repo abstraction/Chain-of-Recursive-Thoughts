@@ -151,6 +151,13 @@ def main():
         type=str,
         help="API URL for local LM Studio (default: http://localhost:1234/v1)"
     )
+    parser.add_argument(
+        "--alternatives",
+        type=int,
+        default=3,
+        help="Number of alternative responses to generate in each round (default: 3)"
+    )
+    # Removed explicit markdown saving parameters - now happens automatically
 
     args = parser.parse_args()
 
@@ -170,7 +177,17 @@ def main():
     agent = create_agent(args.provider, args.openrouter, args.model, args.api_url)
 
     print("\nAgent initialized! Type 'exit' to quit, 'save' to save conversation.")
+    print("Type 'save md' to save the last response as markdown.")
     print("The AI will think recursively before each response.\n")
+
+    # Print configuration
+    print(f"Number of alternatives per round: {args.alternatives}")
+    print(f"Auto-saving responses as markdown to folder: 'responses'")
+    print()
+
+    # Keep track of the last result for markdown saving
+    last_user_input = None
+    last_result = None
 
     while True:
         user_input = input("You: ").strip()
@@ -183,11 +200,21 @@ def main():
         elif user_input.lower() == 'save full':
             agent.save_full_log()
             continue
+        elif user_input.lower() == 'save md':
+            if last_user_input and last_result:
+                agent.save_response_as_markdown(last_user_input, last_result, "responses")
+            else:
+                print("No response to save yet.")
+            continue
         elif not user_input:
             continue
 
         # Get response with thinking process
-        result = agent.think_and_respond(user_input)
+        result = agent.think_and_respond(user_input, num_alternatives=args.alternatives)
+
+        # Save for later use
+        last_user_input = user_input
+        last_result = result
 
         # Display the final response prominently
         print("\n" + "=" * 80)
@@ -205,6 +232,9 @@ def main():
                 print(f"  Reason for selection: {item['explanation']}")
             print("-" * 50)
         print("--------------------------------\n")
+
+        # Always auto-save as markdown
+        agent.save_response_as_markdown(user_input, result, "responses")
 
     # Save on exit
     save_on_exit = input("Save conversation before exiting? (y/n): ").strip().lower()

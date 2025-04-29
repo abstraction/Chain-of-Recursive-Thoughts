@@ -65,11 +65,20 @@ Respond with just a number between 1 and 5."""
             return 3
 
     def _generate_alternatives(self, base_response: str, prompt: str, num_alternatives: int = 3) -> List[str]:
-        """Generate alternative responses."""
+        """Generate alternative responses.
+
+        Args:
+            base_response: The current best response
+            prompt: The original user prompt
+            num_alternatives: Number of alternative responses to generate
+
+        Returns:
+            A list of alternative responses
+        """
         alternatives = []
 
         for i in range(num_alternatives):
-            print(f"\n=== GENERATING ALTERNATIVE {i+1} ===")
+            print(f"\n=== GENERATING ALTERNATIVE {i+1}/{num_alternatives} ===")
             alt_prompt = f"""Original message: {prompt}
 
 Current response: {base_response}
@@ -135,8 +144,17 @@ Then on a new line, explain your choice in one sentence."""
 
         return current_best, explanation
 
-    def think_and_respond(self, user_input: str, verbose: bool = True) -> Dict:
-        """Process user input with recursive thinking."""
+    def think_and_respond(self, user_input: str, verbose: bool = True, num_alternatives: int = 3) -> Dict:
+        """Process user input with recursive thinking.
+
+        Args:
+            user_input: The user's input
+            verbose: Whether to print verbose output
+            num_alternatives: Number of alternative responses to generate in each round
+
+        Returns:
+            A dictionary containing the response, thinking rounds, and thinking history
+        """
         print("\n" + "=" * 50)
         print("🤔 RECURSIVE THINKING PROCESS STARTING")
         print("=" * 50)
@@ -160,7 +178,7 @@ Then on a new line, explain your choice in one sentence."""
                 print(f"\n=== ROUND {round_num}/{thinking_rounds} ===")
 
             # Generate alternatives
-            alternatives = self._generate_alternatives(current_best, user_input)
+            alternatives = self._generate_alternatives(current_best, user_input, num_alternatives)
 
             # Store alternatives in history
             for i, alt in enumerate(alternatives):
@@ -248,3 +266,48 @@ Then on a new line, explain your choice in one sentence."""
             }, f, indent=2, ensure_ascii=False)
 
         print(f"Conversation saved to {filename}")
+
+    def save_response_as_markdown(self, user_input: str, result: Dict, folder: str = "responses"):
+        """Save the response in markdown format.
+
+        Args:
+            user_input: The user's input
+            result: The result dictionary from think_and_respond
+            folder: The folder to save the response in
+        """
+        # Create the folder if it doesn't exist
+        os.makedirs(folder, exist_ok=True)
+
+        # Create a truncated version of the user input for the filename
+        # Remove special characters and limit to 30 characters
+        safe_input = ''.join(c if c.isalnum() or c.isspace() else '_' for c in user_input)
+        truncated_input = safe_input[:30].strip().replace(' ', '_')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{folder}/{truncated_input}_{timestamp}.md"
+
+        # Create the markdown content
+        markdown = f"""# Response to: {user_input}
+
+## Final Response
+{result['response']}
+
+## Thinking Process
+
+**Number of thinking rounds:** {result['thinking_rounds']}
+
+"""
+
+        # Add the thinking history
+        for item in result['thinking_history']:
+            selection_status = "✅ SELECTED" if item['selected'] else "❌ ALTERNATIVE"
+            markdown += f"### Round {item['round']} - {selection_status}\n\n"
+            markdown += f"{item['response']}\n\n"
+            if 'explanation' in item and item['selected']:
+                markdown += f"**Reason for selection:** {item['explanation']}\n\n"
+            markdown += "---\n\n"
+
+        # Save the markdown file
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(markdown)
+
+        print(f"Response saved as markdown to {filename}")
