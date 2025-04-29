@@ -1,16 +1,14 @@
 import os
 import sys
+import importlib
 from typing import Dict, Any, Optional
 import argparse
 from datetime import datetime
 
-# Import the agent implementations
+# Import the base agent implementation
 from recursive_thinking_base import BaseRecursiveThinkingAgent
-from openai_agent import OpenAIRecursiveThinkingAgent
-from claude_agent import ClaudeRecursiveThinkingAgent
-from deepseek_agent import DeepSeekRecursiveThinkingAgent
-from local_lm_agent import LocalLMStudioAgent
-from gemini_agent import GeminiRecursiveThinkingAgent
+
+# We'll use lazy imports for the specific agent implementations
 
 def get_api_key(provider: str, use_openrouter: bool) -> str:
     """Get the API key for the specified provider."""
@@ -54,6 +52,11 @@ def create_agent(provider: str, use_openrouter: bool, model: str = None, api_url
     api_key = get_api_key(provider, use_openrouter)
 
     if provider == "openai":
+        try:
+            from openai_agent import OpenAIRecursiveThinkingAgent
+        except ImportError:
+            raise ImportError("OpenAI agent requires the 'openai' package. Install it with 'pip install openai'.")
+
         default_model = "gpt-4o" if not use_openrouter else "openai/gpt-4o"
         model = model or default_model
         return OpenAIRecursiveThinkingAgent(
@@ -63,6 +66,11 @@ def create_agent(provider: str, use_openrouter: bool, model: str = None, api_url
             openrouter_model=model if use_openrouter else None
         )
     elif provider == "claude":
+        try:
+            from claude_agent import ClaudeRecursiveThinkingAgent
+        except ImportError:
+            raise ImportError("Claude agent requires the 'anthropic' package. Install it with 'pip install anthropic'.")
+
         default_model = "claude-3-opus-20240229" if not use_openrouter else "anthropic/claude-3-opus-20240229"
         model = model or default_model
         return ClaudeRecursiveThinkingAgent(
@@ -72,6 +80,11 @@ def create_agent(provider: str, use_openrouter: bool, model: str = None, api_url
             openrouter_model=model if use_openrouter else None
         )
     elif provider == "deepseek":
+        try:
+            from deepseek_agent import DeepSeekRecursiveThinkingAgent
+        except ImportError:
+            raise ImportError("DeepSeek agent requires the 'requests' package. Install it with 'pip install requests'.")
+
         default_model = "deepseek-chat" if not use_openrouter else "deepseek/deepseek-chat"
         model = model or default_model
         return DeepSeekRecursiveThinkingAgent(
@@ -81,6 +94,11 @@ def create_agent(provider: str, use_openrouter: bool, model: str = None, api_url
             openrouter_model=model if use_openrouter else None
         )
     elif provider == "gemini":
+        try:
+            from gemini_agent import GeminiRecursiveThinkingAgent
+        except ImportError:
+            raise ImportError("Gemini agent requires the 'google-genai' package. Install it with 'pip install google-genai'.")
+
         default_model = "gemini-1.5-pro" if not use_openrouter else "google/gemini-1.5-pro"
         model = model or default_model
         return GeminiRecursiveThinkingAgent(
@@ -90,6 +108,11 @@ def create_agent(provider: str, use_openrouter: bool, model: str = None, api_url
             openrouter_model=model if use_openrouter else None
         )
     elif provider == "local":
+        try:
+            from local_lm_agent import LocalLMStudioAgent
+        except ImportError:
+            raise ImportError("Local LM Studio agent requires the 'requests' package. Install it with 'pip install requests'.")
+
         default_api_url = "http://localhost:1234/v1"
         api_url = api_url or default_api_url
         default_openrouter_model = "openai/gpt-3.5-turbo" if use_openrouter else None
@@ -166,7 +189,12 @@ def main():
         # Get response with thinking process
         result = agent.think_and_respond(user_input)
 
-        print(f"\n🤖 AI FINAL RESPONSE: {result['response']}\n")
+        # Display the final response prominently
+        print("\n" + "=" * 80)
+        print("🤖 AI FINAL RESPONSE:")
+        print("=" * 80)
+        print(f"{result['response']}")
+        print("=" * 80 + "\n")
 
         # Always show complete thinking process
         print("\n--- COMPLETE THINKING PROCESS ---")

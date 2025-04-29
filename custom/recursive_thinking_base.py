@@ -201,15 +201,26 @@ Then on a new line, explain your choice in one sentence."""
         if len(self.conversation_history) > 10:
             self.conversation_history = self.conversation_history[-10:]
 
+        # Add to full thinking log
+        self.full_thinking_log.append({
+            "timestamp": datetime.now().isoformat(),
+            "user_input": user_input,
+            "final_response": current_best,
+            "thinking_rounds": thinking_rounds,
+            "thinking_history": thinking_history
+        })
+
         print("\n" + "=" * 50)
         print("🎯 FINAL RESPONSE SELECTED")
         print("=" * 50)
 
-        return {
+        result = {
             "response": current_best,
             "thinking_rounds": thinking_rounds,
             "thinking_history": thinking_history
         }
+
+        return result
 
     def save_full_log(self, filename: str = None):
         """Save the full thinking process log."""
